@@ -1,60 +1,69 @@
-import { useState, useEffect } from "react";
-import Description from "../Description/Description";
-import Options from "../Options/Options";
-import Feedback from "../Feedback/Feedback";
-import Notification from "../Notification/Notification";
+import { useEffect, useState } from "react";
+import ContactForm from "../ContactForm/ContactForm";
+import SearchBox from "../ContactForm/ContactForm";
+import ContactList from "../ContactList/ContactList";
+
+// const contactsTemp = [
+//   { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
+//   { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
+//   { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
+//   { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' },
+// ];
+
+const STORAGE_KEY = "contacts";
+
+function getInitialContacts() {
+  const storageData = localStorage.getItem(STORAGE_KEY);
+
+  if (storageData) {
+    try {
+      return JSON.parse(storageData);
+    } catch (error) {
+      console.error(error.message);
+    }
+  }
+
+  return [];
+}
 
 export default function App() {
-  const STORAGE_KEY = "appState";
+  const [contacts, setContacts] = useState(getInitialContacts());
+  const [search, setSearch] = useState("");
 
-  const [state, setState] = useState(() => {
-    const storageData = window.localStorage.getItem(STORAGE_KEY);
+  function handleDeleteContact(id) {
+    setContacts((contacts) => contacts.filter((item) => item.id !== id));
+  }
 
-    if (storageData) {
-      try {
-        return JSON.parse(storageData);
-      } catch (error) {
-        console.error(error.message);
-      }
-    }
+  function handleAddContact(newContact) {
+    setContacts((contacts) => [...contacts, newContact]);
+  }
 
-    return { good: 0, neutral: 0, bad: 0 };
-  });
+  function handleSearch(curSearch) {
+    setSearch(curSearch);
+  }
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(contacts));
+  }, [contacts]);
 
-  const updateFeedback = (feedbackType) => {
-    setState({ ...state, [feedbackType]: state[feedbackType] + 1 });
-  };
-
-  const resetFeedback = () => {
-    setState({ good: 0, neutral: 0, bad: 0 });
-  };
-
-  const totalFeedback = state.good + state.neutral + state.bad;
-  const positivePercentage = totalFeedback
-    ? Math.round((state.good / totalFeedback) * 100)
-    : 0;
-  const notificationText = "No feedback yet";
+  const filteredContacts =
+    search.trim() === ""
+      ? contacts.slice()
+      : contacts.filter((contact) =>
+          contact.name.toLowerCase().includes(search.toLowerCase())
+        );
 
   return (
-    <>
-      <Description
-        title="Sip Happens Café"
-        text="Please leave your feedback about our service by selecting one of the options below."
+    <div>
+      <h1>Phonebook</h1>
+      <ContactForm onAddContact={handleAddContact} />
+      <SearchBox search={search} onSearch={handleSearch}>
+        Find contacts by name
+      </SearchBox>
+      <ContactList
+        contacts={filteredContacts}
+        onDeleteContact={handleDeleteContact}
       />
-      <Options
-        updateFeedback={updateFeedback}
-        resetFeedback={resetFeedback}
-        totalFeedback={totalFeedback}
-      />
-      {totalFeedback ? (
-        <Feedback {...state} positivePercentage={positivePercentage} />
-      ) : (
-        <Notification text={notificationText} />
-      )}
-    </>
+    </div>
   );
 }
